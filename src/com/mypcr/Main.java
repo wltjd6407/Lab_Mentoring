@@ -1,28 +1,25 @@
 package com.mypcr;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.util.ArrayList;
 
-import com.mypcr.emulator.MyPCR;
+import com.mypcr.emulator.Protocol;
 
 public class Main 
 {
 	public static void main(String[] args) 
 	{
-		Lotto lt = new Lotto();
-		int lt2[], lt3[], lt4[];
-		lt2 = lt.createLotto();
-		lt3 = lt.createLotto();
-		lt4 = lt.createLotto();
-		int cnt = 0;
+		ArrayList<Protocol> list = new ArrayList<Protocol>();
+		Protocol p1 = new Protocol("1", 20, 20);
+		list.add(p1);
+		System.out.println("=======Protocol=======");
+		System.out.println("Label   temp    time");
+		for(int i=0; i<list.size(); i++)
+		{
+			Protocol p = list.get(i);
+			System.out.println(p.getLabel() + "\t" +
+							   p.getTemp() + "\t" + 
+					           p.getTime());
+		}
 		
-		lt.pirntLotto(lt2);
-		lt.pirntLotto(lt3);
-		lt.pirntLotto(lt4);
-		
-		lt.checkLotto(lt2, lt3);
-		
-		lt.checkLotto(lt2, lt4);
 	}
 }

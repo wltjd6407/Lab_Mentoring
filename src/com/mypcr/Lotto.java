@@ -7,7 +7,7 @@ public class Lotto
 		
 	}
 	
-	int[] createLotto()
+	public static int[] createLotto()
 	{
 		int []at = new int[7];
 		
@@ -27,7 +27,7 @@ public class Lotto
 		return at;
 	}
 	
-	void pirntLotto(int[] ltnum)
+	public void printLotto(int[] ltnum)
 	{
 		int cnt = 0;
 		
@@ -40,7 +40,7 @@ public class Lotto
 		}
 	}
 	
-	void checkLotto(int[] ck, int []cknum)
+	public void checkLotto(int[] ck, int []cknum)
 	{
 		int rst = 0;
 		for(int i=0; i<ck.length; i++)
