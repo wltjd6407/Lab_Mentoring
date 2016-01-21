@@ -11,12 +11,18 @@ public class Main
 	public static void main(String[] args) 
 	{
 		Lotto lt = new Lotto();
-		int lt2[];
+		int lt2[], lt3[], lt4[];
 		lt2 = lt.createLotto();
-		for(int i : lt2)
-		{
-			 System.out.print(i + " ");
-		}
+		lt3 = lt.createLotto();
+		lt4 = lt.createLotto();
+		int cnt = 0;
 		
+		lt.pirntLotto(lt2);
+		lt.pirntLotto(lt3);
+		lt.pirntLotto(lt4);
+		
+		lt.checkLotto(lt2, lt3);
+		
+		lt.checkLotto(lt2, lt4);
 	}
 }
