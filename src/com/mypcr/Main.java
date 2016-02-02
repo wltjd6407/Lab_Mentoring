@@ -21,37 +21,36 @@
 	3. public void showProtocolList(ArrayList<Protocol> list);
 	 위의 함수는 이전에 구현한 프로토콜 출력 부분을 이용하면 된다.
 	단 매개변수로 받은 list가 null 인지 체크하고, null 일 경우, "잘못된 PCR파일입니다" 라고 출력 후에 return; 호출
-  */package com.mypcr;
+  */
+package com.mypcr;
  
 import java.util.ArrayList;
 
+import com.mypcr.emulator.MyPCR;
 import com.mypcr.emulator.Protocol;
 
 public class Main 
 {
 	public static void main(String[] args) 
 	{
-		ArrayList<Protocol> list = new ArrayList<Protocol>();
-		
 		String pcr = "1	25	40\n" + 
-				     "2	40	50\n" +
-				     "3	60	100\n";
+			     "2	40	50\n" +
+			     "3	60	100\n";
+	
+		String pcr1 = "1 25 40\n" +
+		            "2 kk 50\n" +
+		         "3 60 100\n";
+	
+		String pcr2 = "1 25 40\n" +
+		        "2 40 50\n" +
+		        "3 60\n";
+
+		ArrayList<Protocol> list = new ArrayList<Protocol>();
+		MyPCR mypcr = new MyPCR();
 		
-		String pcrs[] = pcr.split("\n");
-		for(int i=0; i<pcrs.length; i++)
-		{
-			String comp[] = pcrs[i].split("\t");
-			Protocol p = new Protocol(comp[0], Integer.parseInt(comp[1]), Integer.parseInt(comp[2]));
-			list.add(p);
-		}
 		
-		System.out.println("======Protocol======");
-		System.out.println("Label   Temp    Time");
-		for(int i=0; i<list.size(); i++)
-		{
-			System.out.println(list.get(i).getLabel() + "\t" +
-							   list.get(i).getTemp()  + "\t" +
-							   list.get(i).getTime()  + "\t");
-		}
+		
+		list = mypcr.makeProtocolList(pcr1);
+		mypcr.showProtocolList(list);
 	}
 }
