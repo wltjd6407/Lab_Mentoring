@@ -1,29 +1,12 @@
 
-/**
-	String pcr1 = "1	25	40\n" +
-  	 		      "2	kk	50\n" +
-  			 	  "3	60	100\n";
-  				
-	String pcr2 = "1	25	40\n" +
-  				  "2	40	50\n" +
-  				  "3	60\n";
-  				  
-	1. MyPCR에 다음과 같은 함수를 만들기
-	
-		public ArrayList<Protocol> makeProtocolList(String pcr)
-		위 함수는 이전에 구현한 pcr line 값을 읽어서 pcr list 를 만드는 예제를 이용해야 됩니다..
-		매개변수 pcr은 위의 pcr1 과 pcr2를 사용하면 된다.
-		
-	2. (1)번 예제를 돌릴 시, 에러가 발생한다.
-	 에러 중에 NumberFormatException 또는 Array 에러가 발생할 경우,
-	 "잘못된 PCR 파일입니다" 라고 출력 후에 return null; 을 호출하시오.
-	 
-	3. public void showProtocolList(ArrayList<Protocol> list);
-	 위의 함수는 이전에 구현한 프로토콜 출력 부분을 이용하면 된다.
-	단 매개변수로 받은 list가 null 인지 체크하고, null 일 경우, "잘못된 PCR파일입니다" 라고 출력 후에 return; 호출
-  */
 package com.mypcr;
  
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import com.mypcr.emulator.MyPCR;
@@ -33,24 +16,32 @@ public class Main
 {
 	public static void main(String[] args) 
 	{
-		String pcr = "1	25	40\n" + 
-			     "2	40	50\n" +
-			     "3	60	100\n";
-	
-		String pcr1 = "1 25 40\n" +
-		            "2 kk 50\n" +
-		         "3 60 100\n";
-	
-		String pcr2 = "1 25 40\n" +
-		        "2 40 50\n" +
-		        "3 60\n";
-
-		ArrayList<Protocol> list = new ArrayList<Protocol>();
+		BufferedReader in = null;
+		String pt = null;
 		MyPCR mypcr = new MyPCR();
+		ArrayList<String> strlist = new ArrayList<String>();
+		try {
+			in = new BufferedReader(new FileReader(new File("Protocol.txt")));
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		try {
+			String line = null;
+			while((line = in.readLine()) != null)
+			{
+				strlist.add(line);
+			}
+			if(strlist.get(0).equals("%PCR%") && strlist.get(strlist.size()-1).equals("%END%")){
+			
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
+		ArrayList<Protocol> protocol = mypcr.makeProtocolList(pt);
+		mypcr.showProtocolList(protocol);
 		
-		
-		list = mypcr.makeProtocolList(pcr1);
-		mypcr.showProtocolList(list);
 	}
 }
