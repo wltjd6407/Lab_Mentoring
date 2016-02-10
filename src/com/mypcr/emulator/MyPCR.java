@@ -19,6 +19,9 @@ public class MyPCR extends Thread
 	private static final double DEFAULT_TEMP = 25.1;
 	private boolean isMonitor = false;
 	
+	private int mElapsedTime = 0;
+	private double tempRise = 0.01;
+	
 	public MyPCR(){
 		mTemp = DEFAULT_TEMP;
 		mPrevTemp = DEFAULT_TEMP;
@@ -27,6 +30,8 @@ public class MyPCR extends Thread
 	}
 	
 	public void run(){
+		int sec = 0;
+		boolean tempflag = false;
 		while(true){
 			try {
 				Thread.sleep(100);	
@@ -35,13 +40,32 @@ public class MyPCR extends Thread
 			}
 			
 			if(state == STATE_RUN){
-				mTemp += 0.5;
+				if(sec > 9){
+					sec = 0;
+					mElapsedTime++;
+				}
+					
+				mTemp += tempRise;
+				sec++;
+				
+				if(mTemp > mPrevTemp){
+					tempRise*=-1;
+					tempflag = true;
+				}
+				if((mTemp < mTargetTemp) && tempflag){
+					tempRise*=-1;
+					tempflag = false;
+					stopPCR();
+				}
 			}
 			else if(state == STATE_READY){
 				mTemp = DEFAULT_TEMP;
 				mPrevTemp = DEFAULT_TEMP;
 				mTargetTemp = DEFAULT_TEMP;
+				sec = 0;
 			}
+			
+			
 		}
 	}
 	
@@ -133,15 +157,24 @@ public class MyPCR extends Thread
 	}
 	
 	public void printStatus(){
-		System.out.println(String.format("상태 : %s , 온도 : %3.1f", getStateString(), mTemp));
+		System.out.println(String.format("상태 : %s , 온도 : %3.1f , elpsedTime : %s", getStateString(), mTemp, getElapsedTime()));
 	}
 	
 	public void startPCR(){
+		if(state == STATE_RUN)
+			return;
+		mTargetTemp = 50.0;
+		mPrevTemp = 95.0;
 		state = STATE_RUN;
+		System.out.println("PCR 시작!");
 	}
 	
 	public void stopPCR(){
+		if(state == STATE_READY)
+			return;
 		state = STATE_READY;
+		System.out.println("PCR 중지!");
+		setMonitoring(false);
 	}
 	
 	public void setMonitoring(boolean monitor){
@@ -152,5 +185,7 @@ public class MyPCR extends Thread
 		return isMonitor;
 	}
 	
-	
+	private String getElapsedTime(){
+		return String.format("%02d:%02d:%02d", (mElapsedTime/3600)%60, (mElapsedTime/60)%60, mElapsedTime%60);
+	}
 }
