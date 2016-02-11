@@ -7,6 +7,18 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
+/**
+ 160211
+  숙제 1
+ mProtocolList = makeProtocolList("PCR.txt");
+  출력 형태 변경(현재 동작하고 있는 프로토콜을 출력)
+ Label : %s, TargetTemp : %3.1f , Remain : %ds 
+  위의 출력 추가
+  만약 PCR이 동작중이지 않은 경우, 이전 출력 형태를 유지
+  숙제2
+ microPCR_firmware에서 branch를 pic18f4550_emul로 변경하여 
+ pwmvalue 계산하는 부분 참조하여 온도 증감 값 정하기.
+ **/
 public class MyPCR extends Thread
 {
 	private double mTemp;
@@ -17,21 +29,38 @@ public class MyPCR extends Thread
 	private static final int STATE_RUN = 0x01;
 	
 	private static final double DEFAULT_TEMP = 25.1;
+	private static final double temps[] = {95.5, 72.0, 85.0, 50.0, 4.0};
 	private boolean isMonitor = false;
-	
 	private int mElapsedTime = 0;
-	private double tempRise = 0.01;
+	private int idx = 0;
+	private boolean flag = false;
+	
+	// prvate ArratList<Protocol> mProtocolList
+	
+	/**
+	 1. temps 인덱스 접근 변수 int idx 생성 후 0으로 초기화 , pcrstart할 때 targettemp = temps[idx]; 
+	 2. prevtemp가 targettemp보다 낮을 때 temprise 값이 양의 값  그리고 온도가 증가 중이었다 라는 것을 알리기 위한 flag 값 false
+	    prevtemp가 targettemp 보다 큰경우 temprise 값이 음의 값 그리고 온도가 증가 중이었다 라는 것을 알리기 위한 flag 값 true
+	    
+	 2. mtemp가 targettemp에 도달 했을 때 
+	  3-1 prevtemp 에 targettemp를 대입해주고 인덱스 접근 변수 idx를 1 증가
+	  3-2 targettemp 에 temp[idx] 대입
+	  3-2 idx 가 temps의 사이즈만큼 증가했을 경우 pcrstop
+	 
+	 **/
 	
 	public MyPCR(){
 		mTemp = DEFAULT_TEMP;
 		mPrevTemp = DEFAULT_TEMP;
 		mTargetTemp = DEFAULT_TEMP;
 		state = STATE_READY;
+		
+		
 	}
 	
 	public void run(){
 		int sec = 0;
-		boolean tempflag = false;
+		
 		while(true){
 			try {
 				Thread.sleep(100);	
@@ -39,26 +68,51 @@ public class MyPCR extends Thread
 				e.printStackTrace();
 			}
 			
+			
+			
+			
 			if(state == STATE_RUN){
+				
+				sec++;
+				if( mPrevTemp > mTargetTemp){
+					mTemp -= 0.1;
+					flag = true;
+				}
+				if( mPrevTemp < mTargetTemp){
+					mTemp += 0.1;
+					flag = false;
+				}
+				
 				if(sec > 9){
 					sec = 0;
 					mElapsedTime++;
 				}
 					
-				mTemp += tempRise;
-				sec++;
+			
 				
-				if(mTemp > mPrevTemp){
-					tempRise*=-1;
-					tempflag = true;
+				if( (mTemp > mTargetTemp) && !flag){
+					
+					idx++;
+					System.out.println(idx);
+					if(idx >= temps.length){
+						stopPCR();
+						continue;
+					}
+					mPrevTemp = mTargetTemp;
+					mTargetTemp = temps[idx];
 				}
-				if((mTemp < mTargetTemp) && tempflag){
-					tempRise*=-1;
-					tempflag = false;
-					stopPCR();
+				if( (mTemp < mTargetTemp) && flag){
+					
+					idx++;
+					if(idx >= temps.length){
+						stopPCR();
+						continue;
+					}
+					mPrevTemp = mTargetTemp;
+					mTargetTemp = temps[idx];
 				}
 			}
-			else if(state == STATE_READY){
+			if(state == STATE_READY){
 				mTemp = DEFAULT_TEMP;
 				mPrevTemp = DEFAULT_TEMP;
 				mTargetTemp = DEFAULT_TEMP;
@@ -163,9 +217,11 @@ public class MyPCR extends Thread
 	public void startPCR(){
 		if(state == STATE_RUN)
 			return;
-		mTargetTemp = 50.0;
-		mPrevTemp = 95.0;
+		idx = 0;
+		mTargetTemp = temps[idx];
+		mPrevTemp = DEFAULT_TEMP;
 		state = STATE_RUN;
+		mElapsedTime = 0;
 		System.out.println("PCR 시작!");
 	}
 	
@@ -186,6 +242,6 @@ public class MyPCR extends Thread
 	}
 	
 	private String getElapsedTime(){
-		return String.format("%02d:%02d:%02d", (mElapsedTime/3600)%60, (mElapsedTime/60)%60, mElapsedTime%60);
+		return String.format("%02d:%02d:%02d", (mElapsedTime/3600)%60, mElapsedTime/60, mElapsedTime%60);
 	}
 }
