@@ -28,15 +28,17 @@ public class MyPCR extends Thread
 	private static final int STATE_READY = 0x00;
 	private static final int STATE_RUN = 0x01;
 	
-	private static final double DEFAULT_TEMP = 25.1;
-	private static final double temps[] = {95.5, 72.0, 85.0, 50.0, 4.0};
+	private static final double DEFAULT_TEMP = 25.0;
 	private boolean isMonitor = false;
 	private int mElapsedTime = 0;
 	private int idx = 0;
 	private boolean flag = false;
-	
-	// prvate ArratList<Protocol> mProtocolList
-	
+	private float kp = 0, ki = 0, kd = 0;
+	private float integralMax = (float) 2000.0;
+	private double lastIntegral = 0;
+	private double lastError = 0;
+	private ArrayList<Protocol> mProtocolList = null;	
+	private int mRemainTime = 0;
 	/**
 	 1. temps 인덱스 접근 변수 int idx 생성 후 0으로 초기화 , pcrstart할 때 targettemp = temps[idx]; 
 	 2. prevtemp가 targettemp보다 낮을 때 temprise 값이 양의 값  그리고 온도가 증가 중이었다 라는 것을 알리기 위한 flag 값 false
@@ -54,8 +56,7 @@ public class MyPCR extends Thread
 		mPrevTemp = DEFAULT_TEMP;
 		mTargetTemp = DEFAULT_TEMP;
 		state = STATE_READY;
-		
-		
+		mProtocolList = makeProtocolList(loadProtocolFromFile("PCR.txt"));
 	}
 	
 	public void run(){
@@ -72,14 +73,12 @@ public class MyPCR extends Thread
 			
 			
 			if(state == STATE_RUN){
-				
+				PID_Control();
 				sec++;
 				if( mPrevTemp > mTargetTemp){
-					mTemp -= 0.1;
 					flag = true;
 				}
 				if( mPrevTemp < mTargetTemp){
-					mTemp += 0.1;
 					flag = false;
 				}
 				
@@ -94,22 +93,24 @@ public class MyPCR extends Thread
 					
 					idx++;
 					System.out.println(idx);
-					if(idx >= temps.length){
+					if(idx >= mProtocolList.size()){
 						stopPCR();
 						continue;
 					}
 					mPrevTemp = mTargetTemp;
-					mTargetTemp = temps[idx];
+					mTargetTemp = mProtocolList.get(idx).getTemp();
+					mRemainTime -= mProtocolList.get(idx-1).getTime();
 				}
 				if( (mTemp < mTargetTemp) && flag){
 					
 					idx++;
-					if(idx >= temps.length){
+					if(idx >= mProtocolList.size()){
 						stopPCR();
 						continue;
 					}
 					mPrevTemp = mTargetTemp;
-					mTargetTemp = temps[idx];
+					mTargetTemp = mProtocolList.get(idx).getTemp();
+					mRemainTime -= mProtocolList.get(idx-1).getTime();
 				}
 			}
 			if(state == STATE_READY){
@@ -142,11 +143,11 @@ public class MyPCR extends Thread
 			}
 		} catch (NumberFormatException e) 
 		{
-			System.out.println("잘못된 PCR파일입니다.");
+			System.out.println("잘못된 PCR파일입니다.(numberformat)");
 			return null;
 		} catch (ArrayIndexOutOfBoundsException e1)
 		{
-			System.out.println("잘못된 PCR파일입니다.");
+			System.out.println("잘못된 PCR파일입니다.(arrayindexout)");
 			return null;
 		}
 			
@@ -211,17 +212,24 @@ public class MyPCR extends Thread
 	}
 	
 	public void printStatus(){
-		System.out.println(String.format("상태 : %s , 온도 : %3.1f , elpsedTime : %s", getStateString(), mTemp, getElapsedTime()));
+		if(state == STATE_READY)
+			System.out.println(String.format("상태 : %s , 온도 : %3.1f , elpsedTime : %s", getStateString(), mTemp, getElapsedTime()));
+		if(state == STATE_RUN)
+			System.out.println(String.format("Label : %s, TargetTemp : %3.1f, Remain : %d, 상태 : %s , 온도 : %3.1f , elpsedTime : %s", mProtocolList.get(idx).getLabel(), mTargetTemp, mRemainTime, getStateString(), mTemp, getElapsedTime()));
 	}
 	
 	public void startPCR(){
 		if(state == STATE_RUN)
 			return;
 		idx = 0;
-		mTargetTemp = temps[idx];
+		mTargetTemp = mProtocolList.get(0).getTemp();
 		mPrevTemp = DEFAULT_TEMP;
 		state = STATE_RUN;
 		mElapsedTime = 0;
+		for(int i=0; i<mProtocolList.size(); i++){
+			mRemainTime += mProtocolList.get(i).getTime();
+		}
+		
 		System.out.println("PCR 시작!");
 	}
 	
@@ -243,5 +251,58 @@ public class MyPCR extends Thread
 	
 	private String getElapsedTime(){
 		return String.format("%02d:%02d:%02d", (mElapsedTime/3600)%60, mElapsedTime/60, mElapsedTime%60);
+	}
+	
+	private void PID_Control(){
+		double currentErr = 0, proportional = 0, integral = 0;
+		double derivative = 0;
+		int pwmValue = 0xffff;
+		double emul_value = 0.0;
+		if(state==STATE_RUN){
+			if(mPrevTemp == 25.0 && mTargetTemp == 95.0){
+				kp = 460;	ki = (float) 0.2;	kd = 3000;	
+			}
+			if(mPrevTemp == 95.0 && mTargetTemp == 60.0){
+				kp = 250;	ki = (float) 0.3;	kd = 1000;
+			}
+			if(mPrevTemp == 60.0 && mTargetTemp == 72.0){
+				kp = 350;	ki = (float) 0.11;	kd = 3000;
+			}
+			if(mPrevTemp == 72.0 && mTargetTemp == 95.0){
+				kp = 460;	ki = (float) 0.18;	kd = 3000;
+			}
+			if(mPrevTemp == 95.0 && mTargetTemp == 50.0){
+				kp = 500;	ki = (float) 0.3;	kd = 1000;
+			}
+		}
+		
+		currentErr = mTargetTemp - mTemp;
+		proportional = currentErr;
+		integral = currentErr + lastIntegral;
+		
+		if( integral > integralMax)
+			integral = integralMax;
+		else if( integral < -integralMax)
+			integral = -integralMax;
+		
+		derivative = currentErr - lastError;
+		pwmValue = (int) (kp*proportional +
+					ki * integral +
+					kd * derivative);
+		
+		if(pwmValue > 1023)
+			pwmValue = 1023;
+		else if(pwmValue < 0)
+			pwmValue = 0;
+		
+		lastError = currentErr;
+		lastIntegral = integral;
+		
+		if( pwmValue == 0 )
+			emul_value = -0.1;
+		else
+			emul_value = (pwmValue/1023.);
+		
+		mTemp += emul_value;
 	}
 }
